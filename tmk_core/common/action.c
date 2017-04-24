@@ -26,6 +26,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "action_macro.h"
 #include "action_util.h"
 #include "action.h"
+#include "hook.h"
+#include "wait.h"
 
 #ifdef DEBUG_ACTION
 #include "debug.h"
@@ -39,6 +41,7 @@ void action_exec(keyevent_t event)
     if (!IS_NOEVENT(event)) {
         dprint("\n---- action_exec: start -----\n");
         dprint("EVENT: "); debug_event(event); dprintln();
+        hook_matrix_change(event);
     }
 
     keyrecord_t record = { .event = event };
@@ -98,7 +101,7 @@ void process_action(keyrecord_t *record)
             {
                 uint8_t mods = (action.kind.id == ACT_LMODS_TAP) ?  action.key.mods :
                                                                     action.key.mods<<4;
-                switch (action.layer_tap.code) {
+                switch (action.key.code) {
     #ifndef NO_ACTION_ONESHOT
                     case MODS_ONESHOT:
                         // Oneshot modifier
@@ -244,14 +247,18 @@ void process_action(keyrecord_t *record)
         case ACT_LAYER_TAP:
         case ACT_LAYER_TAP_EXT:
             switch (action.layer_tap.code) {
-                case 0xe0 ... 0xef:
-                    /* layer On/Off with modifiers(left only) */
+                case 0xc0 ... 0xdf:
+                    /* layer On/Off with modifiers */
                     if (event.pressed) {
                         layer_on(action.layer_tap.val);
-                        register_mods(action.layer_tap.code & 0x0f);
+                        register_mods((action.layer_tap.code & 0x10) ?
+                                (action.layer_tap.code & 0x0f) << 4 :
+                                (action.layer_tap.code & 0x0f));
                     } else {
                         layer_off(action.layer_tap.val);
-                        unregister_mods(action.layer_tap.code & 0x0f);
+                        unregister_mods((action.layer_tap.code & 0x10) ?
+                                (action.layer_tap.code & 0x0f) << 4 :
+                                (action.layer_tap.code & 0x0f));
                     }
                     break;
                 case OP_TAP_TOGGLE:
@@ -363,6 +370,7 @@ void register_code(uint8_t code)
 #endif
         add_key(KC_CAPSLOCK);
         send_keyboard_report();
+        wait_ms(100);
         del_key(KC_CAPSLOCK);
         send_keyboard_report();
     }
@@ -373,6 +381,7 @@ void register_code(uint8_t code)
 #endif
         add_key(KC_NUMLOCK);
         send_keyboard_report();
+        wait_ms(100);
         del_key(KC_NUMLOCK);
         send_keyboard_report();
     }
@@ -383,6 +392,7 @@ void register_code(uint8_t code)
 #endif
         add_key(KC_SCROLLLOCK);
         send_keyboard_report();
+        wait_ms(100);
         del_key(KC_SCROLLLOCK);
         send_keyboard_report();
     }
@@ -438,6 +448,7 @@ void unregister_code(uint8_t code)
 #endif
         add_key(KC_CAPSLOCK);
         send_keyboard_report();
+        wait_ms(100);
         del_key(KC_CAPSLOCK);
         send_keyboard_report();
     }
@@ -448,6 +459,7 @@ void unregister_code(uint8_t code)
 #endif
         add_key(KC_NUMLOCK);
         send_keyboard_report();
+        wait_ms(100);
         del_key(KC_NUMLOCK);
         send_keyboard_report();
     }
@@ -458,6 +470,7 @@ void unregister_code(uint8_t code)
 #endif
         add_key(KC_SCROLLLOCK);
         send_keyboard_report();
+        wait_ms(100);
         del_key(KC_SCROLLLOCK);
         send_keyboard_report();
     }
@@ -523,10 +536,20 @@ bool is_tap_key(keypos_t key)
     switch (action.kind.id) {
         case ACT_LMODS_TAP:
         case ACT_RMODS_TAP:
+            switch (action.key.code) {
+                case MODS_ONESHOT:
+                case MODS_TAP_TOGGLE:
+                case KC_A ... KC_EXSEL:                 // tap key
+                case KC_LCTRL ... KC_RGUI:              // tap key
+                    return true;
+            }
         case ACT_LAYER_TAP:
         case ACT_LAYER_TAP_EXT:
             switch (action.layer_tap.code) {
-                case 0x00 ... 0xdf:
+                case 0xc0 ... 0xdf:         // with modifiers
+                    return false;
+                case KC_A ... KC_EXSEL:     // tap key
+                case KC_LCTRL ... KC_RGUI:  // tap key
                 case OP_TAP_TOGGLE:
                     return true;
             }
