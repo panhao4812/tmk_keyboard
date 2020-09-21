@@ -82,9 +82,6 @@ ARCH ?= AVR8
 #     If no clock division is performed on the input clock inside the AVR (via the
 #     CPU clock adjust registers or the clock division fuses), this will be equal to F_CPU.
 F_USB ?= $(F_CPU)
-# Interrupt driven control endpoint task
-OPT_DEFS += -DINTERRUPT_CONTROL_ENDPOINT
-
 
 
 # Build Options
@@ -108,8 +105,7 @@ OPT_DEFS += -DBOOTLOADER_SIZE=4096
 #OPT_DEFS += -DNO_ACTION_LAYER
 #OPT_DEFS += -DNO_ACTION_MACRO
 
-SRC ?=  usb_usb.cpp \
-       main.cpp
+SRC ?=  usb_usb.cpp
 
 #
 # Keymap file

@@ -1,5 +1,5 @@
 /*
-Copyright 2012,2013 Jun Wako <wakojun@gmail.com>
+Copyright 2012,2013,2020 Jun Wako <wakojun@gmail.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "action.h"
 #include "hook.h"
 #include "wait.h"
+#include "bootloader.h"
 
 #ifdef DEBUG_ACTION
 #include "debug.h"
@@ -58,6 +59,8 @@ void action_exec(keyevent_t event)
 
 void process_action(keyrecord_t *record)
 {
+    if (hook_process_action(record)) return;
+
     keyevent_t event = record->event;
 #ifndef NO_ACTION_TAPPING
     uint8_t tap_count = record->tap.count;
@@ -65,7 +68,7 @@ void process_action(keyrecord_t *record)
 
     if (IS_NOEVENT(event)) { return; }
 
-    action_t action = layer_switch_get_action(event.key);
+    action_t action = layer_switch_get_action(event);
     dprint("ACTION: "); debug_action(action);
 #ifndef NO_ACTION_LAYER
     dprint(" layer_state: "); layer_debug();
@@ -339,6 +342,15 @@ void process_action(keyrecord_t *record)
             break;
 #endif
         case ACT_COMMAND:
+            switch (action.command.id) {
+                case COMMAND_BOOTLOADER:
+                    if (event.pressed) {
+                        clear_keyboard();
+                        wait_ms(50);
+                        bootloader_jump();
+                    }
+                    break;
+            }
             break;
 #ifndef NO_ACTION_FUNCTION
         case ACT_FUNCTION:
@@ -492,6 +504,12 @@ void unregister_code(uint8_t code)
     }
 }
 
+void type_code(uint8_t code)
+{
+    register_code(code);
+    unregister_code(code);
+}
+
 void register_mods(uint8_t mods)
 {
     if (mods) {
@@ -529,9 +547,11 @@ void clear_keyboard_but_mods(void)
 #endif
 }
 
-bool is_tap_key(keypos_t key)
+bool is_tap_key(keyevent_t event)
 {
-    action_t action = layer_switch_get_action(key);
+    if (IS_NOEVENT(event)) { return false; }
+
+    action_t action = layer_switch_get_action(event);
 
     switch (action.kind.id) {
         case ACT_LMODS_TAP:

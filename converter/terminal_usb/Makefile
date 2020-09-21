@@ -50,9 +50,6 @@ ARCH = AVR8
 #     CPU clock adjust registers or the clock division fuses), this will be equal to F_CPU.
 F_USB = $(F_CPU)
 
-# Interrupt driven control endpoint task
-OPT_DEFS += -DINTERRUPT_CONTROL_ENDPOINT
-
 
 # Boot Section Size in bytes
 #   Teensy halfKay   512
@@ -75,11 +72,9 @@ COMMAND_ENABLE = yes    # Commands for debug and configuration
 
 #
 # PS/2 protocol implementations
-# 	USART is recommended if it is available, others are for reference purpose.
-# 	INT implementation will drop simultaneous key strokes.
 #
-PS2_USE_USART = yes	# uses hardware USART engine for PS/2 signal receive(recomened)
-#PS2_USE_INT = yes	# uses external interrupt for falling edge of PS/2 clock pin
+#PS2_USE_USART = yes	# uses hardware USART engine for PS/2 signal receive
+PS2_USE_INT = yes	# uses external interrupt for falling edge of PS/2 clock pin
 #PS2_USE_BUSYWAIT = yes	# uses primitive reference code
 
 
@@ -90,7 +85,6 @@ PROGRAM_CMD = teensy_loader_cli -mmcu=$(MCU) -w -v $(TARGET).hex
 # Search Path
 VPATH += $(TARGET_DIR)
 VPATH += $(TMK_DIR)
-
 
 include $(TMK_DIR)/protocol/lufa.mk
 include $(TMK_DIR)/protocol.mk
